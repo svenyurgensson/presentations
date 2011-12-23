@@ -1,0 +1,100 @@
+1. Очевидное:
+  
+  классы - это всего лишь объекты
+  ООП в обычном понимании - это КОП классово ориентированное программирование
+  КОП по-сути не отражает реальное положение дел, в природе не бывает "абстрактных классов"
+  
+   Ultimately, the individuation is more important than the engineering: 
+   Matz has said over and over again that the principle of object individuality 
+   is what matters, and how Ruby implements it is secondary.
+      (The well-grounded Rubyist 2009, p 375)
+
+2. Используем объекты по-новому
+  
+  Пристальное внимание на объекты, а не на классы
+  respond_to?, defined? - наши друзья
+  Duck typing - правильный подход
+  Заставляем объекты работать так как нам это надо
+
+  ПРИМЕР:
+  раньше возвращали хеш:
+  success:  return {"result"=>"OK", "code"=>"0", "description"=>"queued 1 messages"}
+  failure:  return {"result"=>"ERROR", "code"=>"401", "description"=>"login param is missing"}
+  
+  FAIL! Нужно было проверять - OK, ERROR в receiver'e объекта, неудобно, много мест
+  
+  Эврика!
+  индивидуализируем объекты!
+  
+        private
+        def add_status_flag hash
+          case hash['result'].downcase
+          when 'ok'
+            hash.define_singleton_method(:success?) { return true }
+            hash.define_singleton_method(:failure?) { return false}
+          when 'error'
+            hash.define_singleton_method(:success?) { return false}
+            hash.define_singleton_method(:failure?) { return true }
+          else
+            hash.define_singleton_method(:success?) { return false}
+            hash.define_singleton_method(:failure?) { return false}
+          end
+          hash
+        end # add_status_flag
+  
+  и возвращаем ТОТ же хеш, но...
+  
+  return add_status_flag( {"result"=>"OK", "code"=>"0", "description"=>"queued 1 messages"} )
+  
+  .... далее в программе ...
+  
+  our_response = MyClass.send( options )
+  
+  out_response.success? # true, false ...
+
+  Отлично, ни на что не повлияло, тесты работают, хеш остался хешем
+
+
+
+
+3. DCI - Data Context Interaction
+  Объект расширяется в нужное время в нужный контекст
+  Обрезаем жир с объекта, добавляем синглтон методы
+  
+  пример
+  БЫЛО:
+    current_user.approve(friend_request)
+    
+  СТАЛО:
+    current_user.extend FriendApprover
+    current_user.approve(friend_request)
+    ...
+    current_user.unextend FriendApprover (?? но как ??)
+    
+    ИЛИ
+    
+    current_user.extend Admin
+    current_user.grant_permission(other_user)
+    current_user.extend Notifier
+    current_user.send_thank_you_to(other_user)
+    
+    current_user.unextend .......
+
+
+4. gem mixology в помощь
+    
+    usage
+    -----
+
+        require "mixology"
+
+        mixin = Module.new { def foo; "foo from mixin"; end }
+        object = Class.new { def foo; "foo from object"; end }.new
+
+        object.mixin mixin
+        object.foo #=> "foo from mixin"
+
+        object.unmix mixin
+        object.foo #=> "foo from object"
+
+
