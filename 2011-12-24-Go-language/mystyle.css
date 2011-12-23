@@ -1,0 +1,13 @@
+.smaller {
+	font-size: 40%;
+}
+
+.left {
+  text-align: left;
+}
+
+
+.smbullets.left > ul > li,
+.bullets.left > ul > li {
+  text-align: left; 
+}
